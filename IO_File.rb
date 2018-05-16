@@ -163,5 +163,112 @@ puts stat.uid
 puts stat.ino
 
 # デバイス番号
-puts stat.dev 
+puts stat.dev
+
+# ファイルの操作
+# ファイル名の変更
+# File.rename 'src', 'dest'
+
+# ファイルの移動
+# File.rename 'src', 'dir/dest'
+
+# ファイルの削除
+# File.unlink 'fname'
+
+# シンボリックリンク
+# File.symlink 'origin', 'sym'
+
+# ハードリンク
+# File.link 'origin', 'link'
+
+# ファイルモードの指定（モードは8進数で指定）
+# File.chmod 0600, 'fname'
+
+# オーナー、グループの変更
+# File.chown 216, 216, 'fname'
+
+# 属性や状態の取得
+fname = 'fname.txt'
+
+# ファイルの最終アクセス日時、最後に状態を変更した日時、最終更新日時
+puts File.atime(fname)
+puts File.ctime(fname)
+puts File.mtime(fname)
+
+# ファイルの存在
+puts File.exist?(fname)
+
+# ファイルの状態
+puts File.owned?(fname)
+puts File.executable?(fname)
+puts File.readable?(fname)
+puts File.writable?(fname)
+
+# ファイルタイプ
+puts File.ftype(fname)
+puts File.file?(fname)
+puts File.directory?(fname)
+puts File.pipe?(fname)
+puts File.socket?(fname)
+puts File.symlink?(fname)
+
+# ファイルサイズ
+puts File.size(fname)
+puts File.zero?(fname)
+
+# より詳しい情報を得る
+puts File.stat(fname)
+
+# ファイルパスの操作
+fname = 'fname.txt'
+
+# ファイルのあるディレクトリパス
+puts File.dirname(fname)
+
+# ファイル名
+puts File.basename(fname)
+
+# 拡張子を除いたファイル名
+puts File.basename(fname, '.*')
+
+# ファイルの拡張子
+puts File.extname(fname)
+
+# ファイルパス同士を連結する（可変長引数をとる）
+puts File.join('usr/local', 'bin/ruby')
+
+# dirnameとbasenameの配列
+puts File.split('/usr/local/bin/ruby')
+
+# ディレクトリを指定して絶対パスを得る(File.absolute_path)
+puts File.expand_path('fname', '/path/to/there')
+
+# ディレクトリパスを省略するとカレントディレクトリが使用される
+puts File.expand_path('..', __FILE__)
+
+# - を展開した絶対パスを得る
+puts File.expand_path('-')
+
+# File.absolute_pathは先頭の-を展開しない
+puts File.absolute_path('-')
+
+# シンボリックリンクから実際のファイルの絶対パスを得る
+# puts File.realpath('symlink')
+
+# ファイルはKernel.#openでも開ける
+open('foo') { |f| puts f.read }
+
+# コマンドの実行
+open('|uname -a') { |io| puts io.read }
+
+# 子プロセスの作成
+open '|-', 'w' do |io|
+  if io
+    # 親プロセスではブロック引数がIOオブジェクト
+    io.puts 'hello, world!'
+  else
+    # 子プロセスではブロック引数がnil
+    p gets
+  end
+end
 
