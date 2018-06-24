@@ -103,3 +103,136 @@ current.priority = 3
 Thread.fork {
   puts Thread.current.priority
 }.join
+
+group = ThreadGroup.new
+thread = Thread.fork do
+  sleep 1
+  # do something
+end
+
+# グループにスレッドを追加
+group.add thread
+
+# グループのスレッド一覧
+puts group.list
+
+# Mutex
+def countup
+  File.open 'counter', File::RDWR | File::CREAT do |f|
+    last_count = f.read.to_i
+
+    f.rewind
+    f.write last_count + 1
+  end
+end
+
+# Mutexで排他処理を行う
+mutex = Mutex.new
+
+10.times.map {
+  Thread.fork {
+    mutex.synchronize { countup }
+  }
+}.map(&:join)
+
+puts File.read('counter').to_i
+
+# Queue
+queue = Queue.new
+
+# ワーカースレッドを3つ用意
+workers = 3.times.map { |t|
+  Thread.fork {
+    while req = queue.deq
+      puts "Worker#{ t } processing.."
+      req.call
+    end
+  }
+}
+
+# 10個のリクエストをenqueueする
+10.times do |t|
+  queue.enq -> {
+    sleep 1 # do something
+  }
+end
+
+# 全てのキューが処理されるまで待つ
+sleep 1 until queue.empty?
+
+# キューが空になったので全スレッドがqueueを待っている
+p workers.map(&:status)
+
+# 再度キューに追加
+3.times do |t|
+  queue.enq -> {
+    sleep 1 # do something
+  }
+end
+
+# キューを処理している最中の状態を確認
+p workers.map(&:status)
+
+# 全てのキューが処理されるまで待つ
+sleep 1 until queue.empty?
+
+class Bucket
+  def initialize(limit = 5)
+    @appendable = ConditionVariable.new # 出力されるまで待つためのもの
+    @flushable = ConditionVariable.new # 行数が一定数に達するまで待つためのもの
+    @lock = Mutex.new # @outのロック
+    @limit = limit # @outの行数が@limitに達したら@flushableになる
+    @out = '' # 出力される文字列
+  end
+
+  def append(str)
+    @lock.synchronize {
+      @appendable.wait(@lock) unless appendable?
+
+      @out << str
+
+      @flushable.signal if flushable?
+    }
+  end
+
+  def flush
+    @lock.synchronize {
+      @flushable.wait(@lock) unless flushable?
+
+      puts '-' * 10
+      puts @out
+
+      @out = ''
+      @appendable.signal if appendable?
+    }
+  end
+
+  private
+
+  def appendable?
+    @out.lines.count < @limit
+  end
+
+  def flushable?
+    !appendable?
+  end
+end
+
+bucket = Bucket.new
+
+# 何らかの処理をしてbucketに結果を書き込む
+t1 = Thread.fork {
+  15.times do |t|
+    sleep rand # 処理にかかる些細な時間
+    bucket.append "line: #{ t }\n"
+  end
+}
+
+# bucketに書き込まれた処理結果を一定数ごとに出力する
+t2 = Thread.fork {
+  3.times do
+    bucket.flush
+  end
+}
+
+[t1, t2].map(&:join)
